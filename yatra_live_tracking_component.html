@@ -1,0 +1,282 @@
+<!DOCTYPE html>
+<html lang="en" class="h-full">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>100-Day Yatra Live Tracking Dashboard</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <!-- Leaflet CSS for interactive map simulation -->
+    <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" integrity="sha256-p4NxAoJBhIIN+hmNHrzRCf9tD/miZyoHS5obTRR9BMY=" crossorigin=""/>
+    <!-- Leaflet JS -->
+    <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js" integrity="sha256-20nQCchB9co0qIjJZRGuk2/Z9VM+kNiyxNV1lvTlZBo=" crossorigin=""></script>
+    <style>
+        @import url('https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700&display=swap');
+        body { font-family: 'Plus Jakarta Sans', sans-serif; }
+        .yatra-gradient { background: linear-gradient(135deg, #78350f 0%, #b45309 50%, #d97706 100%); }
+    </style>
+</head>
+<body class="bg-amber-50/50 h-full text-stone-800 flex flex-col">
+
+    <header class="bg-white border-b border-amber-100 shadow-sm sticky top-0 z-50">
+        <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 h-16 flex items-center justify-between">
+            <div class="flex items-center space-x-3">
+                <div class="w-10 h-10 rounded-xl yatra-gradient flex items-center justify-center text-white shadow-md">
+                    <i class="fa-solid fa-person-hiking text-lg"></i>
+                </div>
+                <div>
+                    <h1 class="font-bold text-stone-900 text-base sm:text-lg tracking-tight">100-Day Maha Yatra</h1>
+                    <p class="text-xs text-amber-700 font-medium flex items-center gap-1.5">
+                        <span class="w-2 h-2 rounded-full bg-emerald-500 animate-pulse"></span>
+                        Live GPS Signal Active
+                    </p>
+                </div>
+            </div>
+            <div class="flex items-center gap-2 sm:gap-3">
+                <button onclick="toggleSimulation()" id="simBtn" class="px-3 py-1.5 text-xs sm:text-sm font-semibold rounded-lg bg-amber-100 text-amber-900 hover:bg-amber-200 transition">
+                    <i class="fa-solid fa-play mr-1"></i> Simulate Movement
+                </button>
+                <button onclick="openEmbedModal()" class="px-3 py-1.5 text-xs sm:text-sm font-semibold rounded-lg bg-stone-900 text-white hover:bg-stone-800 transition">
+                    <i class="fa-solid fa-code mr-1"></i> Get Wix Embed
+                </button>
+            </div>
+        </div>
+    </header>
+
+    <main class="flex-1 max-w-7xl w-full mx-auto p-3 sm:p-6 grid grid-cols-1 lg:grid-cols-3 gap-4 sm:gap-6">
+        
+        <div class="lg:col-span-1 flex flex-col gap-4">
+            
+            <!-- Progress Card -->
+            <div class="bg-white rounded-2xl p-5 shadow-sm border border-amber-100 relative overflow-hidden">
+                <div class="absolute -right-6 -bottom-6 w-24 h-24 bg-amber-100 rounded-full opacity-50 pointer-events-none"></div>
+                <div class="flex justify-between items-start mb-3">
+                    <span class="px-3 py-1 bg-amber-50 text-amber-800 font-semibold text-xs rounded-full uppercase tracking-wider border border-amber-200/60">
+                        Day 42 of 100
+                    </span>
+                    <span class="text-xs text-stone-500 font-medium">42% Completed</span>
+                </div>
+                <div class="mb-4">
+                    <h2 class="text-2xl font-bold text-stone-900">840 km <span class="text-sm font-normal text-stone-500">/ 2,000 km</span></h2>
+                    <p class="text-xs text-stone-500 mt-0.5">Total distance covered so far</p>
+                </div>
+                <!-- Progress bar -->
+                <div class="w-full bg-stone-100 rounded-full h-2.5 overflow-hidden">
+                    <div class="yatra-gradient h-2.5 rounded-full transition-all duration-500" style="width: 42%"></div>
+                </div>
+            </div>
+
+            <!-- Current Location Card -->
+            <div class="bg-white rounded-2xl p-5 shadow-sm border border-amber-100 flex flex-col gap-4">
+                <div class="flex items-start justify-between">
+                    <div>
+                        <span class="text-xs text-amber-700 font-semibold tracking-wide uppercase">Current Position</span>
+                        <h3 id="currentLocationName" class="text-lg font-bold text-stone-900 mt-0.5">Salem Highway, TN</h3>
+                        <p id="currentCoords" class="text-xs text-stone-500 font-mono mt-0.5">11.6643° N, 78.1460° E</p>
+                    </div>
+                    <div class="w-10 h-10 rounded-xl bg-amber-50 text-amber-800 flex items-center justify-center border border-amber-200/60">
+                        <i class="fa-solid fa-location-crosshairs text-lg"></i>
+                    </div>
+                </div>
+
+                <div class="grid grid-cols-2 gap-3 pt-3 border-t border-stone-100 text-sm">
+                    <div class="bg-stone-50 p-3 rounded-xl">
+                        <div class="text-stone-500 text-xs mb-0.5">Current Speed</div>
+                        <div class="font-bold text-stone-900 flex items-center gap-1.5">
+                            <i class="fa-solid fa-gauge-high text-amber-600"></i> <span id="speedVal">4.2 km/h</span>
+                        </div>
+                    </div>
+                    <div class="bg-stone-50 p-3 rounded-xl">
+                        <div class="text-stone-500 text-xs mb-0.5">Tracker Battery</div>
+                        <div class="font-bold text-emerald-600 flex items-center gap-1.5">
+                            <i class="fa-solid fa-battery-three-quarters"></i> <span id="batteryVal">88%</span>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="flex items-center justify-between text-xs text-stone-500 bg-amber-50/50 px-3 py-2 rounded-xl border border-amber-100">
+                    <span class="flex items-center gap-1.5">
+                        <i class="fa-regular fa-clock text-amber-700"></i> Last satellite ping:
+                    </span>
+                    <span id="lastPingTime" class="font-semibold text-stone-700">Just now</span>
+                </div>
+            </div>
+
+            <!-- Checkpoints Schedule -->
+            <div class="bg-white rounded-2xl p-5 shadow-sm border border-amber-100 flex-1">
+                <h3 class="font-bold text-stone-900 text-sm mb-3 flex items-center justify-between">
+                    <span>Yatra Milestone Checkpoints</span>
+                    <span class="text-xs font-normal text-amber-700">Next: Dharmapuri</span>
+                </h3>
+                <div class="space-y-3 text-sm">
+                    <div class="flex items-start gap-3 relative pb-3 border-b border-stone-100 last:border-0 last:pb-0">
+                        <div class="w-6 h-6 rounded-full bg-emerald-100 text-emerald-700 flex items-center justify-center text-xs mt-0.5 shrink-0">
+                            <i class="fa-solid fa-check"></i>
+                        </div>
+                        <div>
+                            <div class="font-semibold text-stone-900 text-xs sm:text-sm">Erode Base Camp</div>
+                            <div class="text-stone-500 text-xs">Day 35 • Completed</div>
+                        </div>
+                    </div>
+                    <div class="flex items-start gap-3 relative pb-3 border-b border-stone-100 last:border-0 last:pb-0">
+                        <div class="w-6 h-6 rounded-full bg-amber-600 text-white flex items-center justify-center text-xs mt-0.5 shrink-0 shadow-sm animate-pulse">
+                            <i class="fa-solid fa-person-walking"></i>
+                        </div>
+                        <div>
+                            <div class="font-semibold text-amber-900 text-xs sm:text-sm">Salem Transit Stop</div>
+                            <div class="text-amber-700 text-xs font-medium">Day 42 • Current Location</div>
+                        </div>
+                    </div>
+                    <div class="flex items-start gap-3 relative">
+                        <div class="w-6 h-6 rounded-full bg-stone-100 text-stone-400 flex items-center justify-center text-xs mt-0.5 shrink-0">
+                            <i class="fa-solid fa-flag"></i>
+                        </div>
+                        <div>
+                            <div class="font-semibold text-stone-500 text-xs sm:text-sm">Dharmapuri Ground</div>
+                            <div class="text-stone-400 text-xs">Day 45 • Upcoming</div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+        </div>
+
+        <div class="lg:col-span-2 bg-white rounded-2xl shadow-sm border border-amber-100 flex flex-col overflow-hidden h-[450px] sm:h-[550px] lg:h-auto">
+            <div class="px-5 py-3.5 border-b border-amber-100 flex items-center justify-between bg-white z-10">
+                <div class="flex items-center gap-2">
+                    <i class="fa-solid fa-map-location-dot text-amber-700"></i>
+                    <span class="font-bold text-sm text-stone-900">Live Route Map & GPS Tracker</span>
+                </div>
+                <div class="flex items-center gap-2">
+                    <span class="text-xs px-2.5 py-1 bg-amber-50 text-amber-800 rounded-md font-medium border border-amber-200/60">
+                        <i class="fa-solid fa-satellite-dish mr-1 text-amber-600"></i> OpenStreetMap
+                    </span>
+                </div>
+            </div>
+            <div id="map" class="w-full flex-1 z-0"></div>
+        </div>
+
+    </main>
+
+    <div id="embedModal" class="fixed inset-0 bg-stone-900/50 backdrop-blur-sm z-50 hidden flex items-center justify-center p-4">
+        <div class="bg-white rounded-2xl max-w-lg w-full p-6 shadow-xl border border-stone-200 animate-in fade-in zoom-in duration-200">
+            <div class="flex justify-between items-center mb-4">
+                <h3 class="font-bold text-lg text-stone-900 flex items-center gap-2">
+                    <i class="fa-solid fa-code text-amber-700"></i> Wix Website Embed Code
+                </h3>
+                <button onclick="closeEmbedModal()" class="text-stone-400 hover:text-stone-600 text-lg p-1">
+                    <i class="fa-solid fa-xmark"></i>
+                </button>
+            </div>
+            <p class="text-xs sm:text-sm text-stone-600 mb-4">
+                Copy this HTML iframe snippet and paste it into your Wix Editor via <b>Add Elements > Embed Code > Embed HTML</b>.
+            </p>
+            <div class="relative bg-stone-900 text-stone-200 p-3.5 rounded-xl font-mono text-xs overflow-x-auto mb-4 border border-stone-800">
+                <code id="embedCodeSnippet">&lt;iframe src="https://yourdomain.com/yatra-tracker.html" width="100%" height="600px" style="border:0; border-radius:16px;" allowfullscreen="" loading="lazy"&gt;&lt;/iframe&gt;</code>
+            </div>
+            <div class="flex justify-end gap-3">
+                <button onclick="closeEmbedModal()" class="px-4 py-2 text-xs sm:text-sm font-semibold rounded-xl bg-stone-100 text-stone-700 hover:bg-stone-200 transition">
+                    Close
+                </button>
+                <button onclick="copyEmbedCode()" class="px-4 py-2 text-xs sm:text-sm font-semibold rounded-xl yatra-gradient text-white shadow hover:opacity-90 transition">
+                    <i class="fa-regular fa-copy mr-1"></i> Copy Code
+                </button>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        // Initialize Leaflet Map centered around Tamil Nadu route
+        const map = L.map('map').setView([11.6643, 78.1460], 11);
+
+        // Add OpenStreetMap tile layer with warm, earthy styling or standard clean tiles
+        L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+            maxZoom: 19,
+            attribution: '&copy; OpenStreetMap contributors'
+        }).addTo(map);
+
+        // Route polyline coordinates (simulating yatra trail)
+        const routeCoordinates = [
+            [11.3410, 77.7172], // Erode
+            [11.5000, 77.9500], // Transit waypoint
+            [11.6643, 78.1460], // Salem current position
+            [12.1232, 78.1576], // Upcoming Dharmapuri
+        ];
+
+        // Draw completed and upcoming route paths
+        const routeLine = L.polyline(routeCoordinates, {
+            color: '#b45309',
+            weight: 4,
+            opacity: 0.8,
+            dashArray: '6, 6'
+        }).addTo(map);
+
+        // Custom icon for current Yatra position
+        const yatraIcon = L.divIcon({
+            className: 'custom-yatra-marker',
+            html: '<div style="background-color: #b45309; width: 36px; height: 36px; border-radius: 50%; display: flex; align-items: center; justify-content: center; color: white; box-shadow: 0 4px 10px rgba(0,0,0,0.3); border: 3px solid white;"><i class="fa-solid fa-person-hiking text-sm"></i></div>',
+            iconSize: [36, 36],
+            iconAnchor: [18, 18]
+        });
+
+        // Add Marker for current position
+        let currentMarker = L.marker([11.6643, 78.1460], {icon: yatraIcon}).addTo(map)
+            .bindPopup("<b>Maha Yatra - Day 42</b><br>Salem Highway Transit Point").openPopup();
+
+        // Add Start and Checkpoint markers
+        L.marker([11.3410, 77.7172]).addTo(map).bindPopup("<b>Day 1: Erode Start</b>");
+        L.marker([12.1232, 78.1576]).addTo(map).bindPopup("<b>Day 45: Dharmapuri Destination</b>");
+
+        // Simulation state variables
+        let isSimulating = false;
+        let simInterval = null;
+        let simIndex = 0;
+        const simulationPath = [
+            {lat: 11.5200, lng: 77.9800, name: "Attur Bypass Road", speed: "4.5 km/h", coords: "11.5200° N, 77.9800° E"},
+            {lat: 11.5800, lng: 78.0400, name: "Valapady Highway", speed: "3.8 km/h", coords: "11.5800° N, 78.0400° E"},
+            {lat: 11.6643, lng: 78.1460, name: "Salem Main Checkpoint", speed: "0.0 km/h", coords: "11.6643° N, 78.1460° E"},
+            {lat: 11.7200, lng: 78.1600, name: "Ayodhiyapattinam Route", speed: "4.2 km/h", coords: "11.7200° N, 78.1600° E"}
+        ];
+
+        function toggleSimulation() {
+            isSimulating = !isSimulating;
+            const btn = document.getElementById('simBtn');
+            if (isSimulating) {
+                btn.innerHTML = '<i class="fa-solid fa-pause mr-1"></i> Stop Simulation';
+                btn.className = 'px-3 py-1.5 text-xs sm:text-sm font-semibold rounded-lg bg-amber-600 text-white hover:bg-amber-700 transition';
+                
+                simInterval = setInterval(() => {
+                    const point = simulationPath[simIndex % simulationPath.length];
+                    currentMarker.setLatLng([point.lat, point.lng]);
+                    map.panTo([point.lat, point.lng], {animate: true});
+                    
+                    document.getElementById('currentLocationName').innerText = point.name;
+                    document.getElementById('currentCoords').innerText = point.coords;
+                    document.getElementById('speedVal').innerText = point.speed;
+                    document.getElementById('lastPingTime').innerText = 'Just now';
+                    
+                    simIndex++;
+                }, 3000);
+            } else {
+                btn.innerHTML = '<i class="fa-solid fa-play mr-1"></i> Simulate Movement';
+                btn.className = 'px-3 py-1.5 text-xs sm:text-sm font-semibold rounded-lg bg-amber-100 text-amber-900 hover:bg-amber-200 transition';
+                clearInterval(simInterval);
+            }
+        }
+
+        function openEmbedModal() {
+            document.getElementById('embedModal').classList.remove('hidden');
+        }
+
+        function closeEmbedModal() {
+            document.getElementById('embedModal').classList.add('hidden');
+        }
+
+        function copyEmbedCode() {
+            const codeText = document.getElementById('embedCodeSnippet').innerText;
+            document.execCommand('copy');
+            alert('Embed code copied to clipboard!');
+        }
+    </script>
+</body>
+</html>
